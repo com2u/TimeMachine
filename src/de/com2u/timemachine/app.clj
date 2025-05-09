@@ -4,18 +4,10 @@
             [de.com2u.timemachine.ui :as ui]
             [de.com2u.timemachine.settings :as settings]
             [rum.core :as rum]
-            [xtdb.api :as xt]
             [ring.adapter.jetty9 :as jetty]
             [cheshire.core :as cheshire]))
 
-(defn set-foo [{:keys [session params] :as ctx}]
-  (biff/submit-tx ctx
-    [{:db/op :update
-      :db/doc-type :user
-      :xt/id (:uid session)
-      :user/foo (:foo params)}])
-  {:status 303
-   :headers {"location" "/app"}})
+
 
 (defn bar-form [{:keys [value]}]
   (biff/form
@@ -32,13 +24,7 @@
    [:.text-sm.text-gray-600
     "This demonstrates updating a value with HTMX."]))
 
-(defn set-bar [{:keys [session params] :as ctx}]
-  (biff/submit-tx ctx
-    [{:db/op :update
-      :db/doc-type :user
-      :xt/id (:uid session)
-      :user/bar (:bar params)}])
-  (biff/render (bar-form {:value (:bar params)})))
+
 
 (defn message [{:msg/keys [text sent-at]}]
   [:.mt-3 {:_ "init send newMessage to #message-header"}
@@ -46,13 +32,9 @@
    [:div text]])
 
 (defn notify-clients [{:keys [de.com2u.timemachine/chat-clients]} tx]
-  (doseq [[op & args] (::xt/tx-ops tx)
-          :when (= op ::xt/put)
-          :let [[doc] args]
-          :when (contains? doc :msg/text)
-          :let [html (rum/render-static-markup
+  (doseq [:let [html (rum/render-static-markup
                       [:div#messages {:hx-swap-oob "afterbegin"}
-                       (message doc)])]
+                       ])]
           ws @chat-clients]
     (jetty/send! ws html)))
 

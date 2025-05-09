@@ -4,8 +4,7 @@
             [de.com2u.timemachine.app :as app]
             [de.com2u.timemachine.home :as home]
             [de.com2u.timemachine.middleware :as mid]
-            [de.com2u.timemachine.ui :as ui]
-            [de.com2u.timemachine.worker :as worker]
+            [de.com2u.timemachine.ui :as ui] 
             [de.com2u.timemachine.schema :as schema]
             [clojure.test :as test]
             [clojure.tools.logging :as log]
@@ -19,8 +18,7 @@
   [app/module
    (biff/authentication-module {})
    home/module
-   schema/module
-   worker/module])
+   schema/module])
 
 (def routes [["" {:middleware [mid/wrap-site-defaults]}
               (keep :routes modules)]
@@ -55,16 +53,14 @@
    :biff/malli-opts #'malli-opts
    :biff.beholder/on-save #'on-save
    :biff.middleware/on-error #'ui/on-error
-   :biff.xtdb/tx-fns biff/tx-fns
+
    :de.com2u.timemachine/chat-clients (atom #{})})
 
 (defonce system (atom {}))
 
 (def components
   [biff/use-aero-config
-   biff/use-xtdb
    biff/use-queues
-   biff/use-xtdb-tx-listener
    biff/use-htmx-refresh
    biff/use-jetty
    biff/use-chime

@@ -27,11 +27,6 @@
 (defn get-context []
   (biff/merge-context @main/system))
 
-(defn add-fixtures []
-  (biff/submit-tx (get-context)
-    (-> (io/resource "fixtures.edn")
-        slurp
-        edn/read-string)))
 
 (defn check-config []
   (let [prod-config (biff/use-aero-config {:biff.config/profile "prod"})
@@ -62,7 +57,7 @@
   ;; you edit the seed data (in resources/fixtures.edn), you can reset the
   ;; database by running `rm -r storage/xtdb` (DON'T run that in prod),
   ;; restarting your app, and calling add-fixtures again.
-  (add-fixtures)
+
 
   ;; Query the database
   (let [{:keys [biff/db] :as ctx} (get-context)]
@@ -70,14 +65,7 @@
        '{:find (pull user [*])
          :where [[user :user/email]]}))
 
-  ;; Update an existing user's email address
-  (let [{:keys [biff/db] :as ctx} (get-context)
-        user-id (biff/lookup-id db :user/email "hello@example.com")]
-    (biff/submit-tx ctx
-      [{:db/doc-type :user
-        :xt/id user-id
-        :db/op :update
-        :user/email "new.address@example.com"}]))
+
 
   (sort (keys (get-context)))
 
