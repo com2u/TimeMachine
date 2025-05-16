@@ -3,9 +3,11 @@
             [de.com2u.timemachine.middleware :as mid]
             [de.com2u.timemachine.ui :as ui]
             [de.com2u.timemachine.settings :as settings]
+            [de.com2u.timemachine.game :as game] ; Added game namespace
             [rum.core :as rum]
             [ring.adapter.jetty9 :as jetty]
-            [cheshire.core :as cheshire]))
+            [cheshire.core :as cheshire]
+            [xtdb.api :as xt])) ; Added XTDB api
 
 
 
@@ -70,8 +72,55 @@
       (if (empty? messages)
         "No messages yet."
         "Messages sent in the past 10 minutes:")]
-     [:div#messages
+       [:div#messages
       (map message (sort-by :msg/sent-at #(compare %2 %1) messages))]]))
+
+;; --- Game WebSocket Logic ---
+
+(defn broadcast-game-state [{:keys [de.com2u.timemachine/game-clients]} game-state]
+  (let [json-state (cheshire/generate-string game-state)]
+    (doseq [ws @game-clients]
+      (jetty/send! ws json-state))))
+
+(defn game-ws-handler [{:keys [de.com2u.timemachine/game-clients] :as ctx}]
+  {:status 101
+   :headers {"upgrade" "websocket"
+             "connection" "upgrade"}
+   :ws {:on-connect (fn [ws]
+                      (println "Game client connected:" ws)
+                      (swap! game-clients conj ws)
+                      ;; Send initial state to the newly connected client
+                      (jetty/send! ws (cheshire/generate-string (game/get-controls-state))))
+        :on-text (fn [ws text-message]
+                   (try
+                     (let [message (cheshire/parse-string text-message true)
+                           command (:command message)
+                           control-id (keyword (:controlId message)) ; Ensure controlId is a keyword
+                           value (:value message)]
+                       (println "Received command:" command "for control:" control-id "with value:" value)
+                       (cond
+                         (= command "toggle-enabled")
+                         (when control-id (game/toggle-control-enabled! control-id))
+
+                         (= command "set-interval")
+                         (when (and control-id value) (game/set-control-interval! control-id value))
+
+                         (= command "reset-generators")
+                         (game/reset-generators!)
+                         
+                         :else
+                         (println "Unknown command received:" command))
+                       
+                       ;; After processing, broadcast the new state immediately
+                       (broadcast-game-state ctx (game/get-controls-state)))
+                     (catch Exception e
+                       (println "Error processing command from client:" (.getMessage e) "Raw message:" text-message)
+                       (.printStackTrace e))))
+        :on-close (fn [ws status-code reason]
+                    (println "Game client disconnected:" ws "Status:" status-code "Reason:" reason)
+                    (swap! game-clients disj ws))}})
+
+;; --- End Game WebSocket Logic ---
 
 (defn app [{:keys [session biff/db] :as ctx}]
   (let [{:user/keys [email foo bar]} (xt/entity db (:uid session))]
@@ -128,8 +177,33 @@
   {:static {"/about/" about-page}
    :routes ["/app" {:middleware [mid/wrap-signed-in]}
             ["" {:get app}]
-            ["/set-foo" {:post set-foo}]
-            ["/set-bar" {:post set-bar}]
+            ;; Removed /set-foo and /set-bar routes as they are not defined
+            ;; ["/set-foo" {:post set-foo}]
+            ;; ["/set-bar" {:post set-bar}]
             ["/chat" {:get ws-handler}]]
-   :api-routes [["/api/echo" {:post echo}]]
+   :api-routes [["/api/echo" {:post echo}]
+                ["/ws/game" {:get game-ws-handler}]] ; Added game WebSocket route
    :on-tx notify-clients})
+
+;; IMPORTANT:
+;; 1. Initialize game-clients atom in your Biff system map:
+;;    Add something like :de.com2u.timemachine/game-clients (atom #{})
+;;    to the components map in your main or dev/repl.clj.
+;;
+;; 2. Start the game simulation after system start:
+;;    In your main or dev/repl.clj, after (biff/start-system components) or similar,
+;;    you need to call (game/start-simulation! broadcast-game-state-fn)
+;;    where broadcast-game-state-fn is a function that can access the
+;;    game-clients atom from the system map.
+;;    For example, in your main:
+;;    (let [system (biff/start-system ...)]
+;;      (game/start-simulation! (fn [state] (broadcast-game-state system state)))
+;;      ;; ... keep system running)
+;;    Ensure `broadcast-game-state` is adapted or called in a way that it gets the system map.
+;;    A direct way if `broadcast-game-state` is defined as above:
+;;    (game/start-simulation! (partial broadcast-game-state system))
+;;    Or, more cleanly, pass the system map to broadcast-game-state if it's not already available.
+;;    The `broadcast-game-state` function defined above expects the system map (or at least game-clients) as its first argument.
+;;
+;;    A more Biff-idiomatic way would be to make game simulation a component.
+;;    For now, the above manual start is a simpler first step.

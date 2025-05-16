@@ -43,7 +43,8 @@
                             (assoc-in [:security :anti-forgery] false)
                             (assoc-in [:responses :absolute-redirects] true)
                             (assoc :session false)
-                            (assoc :static false)))))
+                            ;; (assoc :static false) ; Let's try enabling default static file serving
+                            ))))
 
 (defn wrap-api-defaults [handler]
   (-> handler

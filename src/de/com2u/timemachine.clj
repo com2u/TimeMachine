@@ -4,14 +4,16 @@
             [de.com2u.timemachine.app :as app]
             [de.com2u.timemachine.home :as home]
             [de.com2u.timemachine.middleware :as mid]
-            [de.com2u.timemachine.ui :as ui] 
+            [de.com2u.timemachine.ui :as ui]
             [de.com2u.timemachine.schema :as schema]
+            [de.com2u.timemachine.game :as game] ; Added game namespace
             [clojure.test :as test]
             [clojure.tools.logging :as log]
             [clojure.tools.namespace.repl :as tn-repl]
             [malli.core :as malc]
             [malli.registry :as malr]
-            [nrepl.cmdline :as nrepl-cmd])
+            [nrepl.cmdline :as nrepl-cmd]
+            [clojure.java.io :as io]) ; Added for file operations
   (:gen-class))
 
 (def modules
@@ -33,7 +35,10 @@
 (defn generate-assets! [ctx]
   (biff/export-rum static-pages "target/resources/public")
   (biff/delete-old-files {:dir "target/resources/public"
-                          :exts [".html"]}))
+                          :exts [".html"]})
+  ;; Removed custom CSS copying. Relies on `clj -M:dev css` outputting to
+  ;; target/resources/public/css/styles.css and Biff middleware serving it.
+  (log/info "generate-assets! completed (RUM export and old file deletion)."))
 
 (defn on-save [ctx]
   (biff/add-libs)
@@ -54,7 +59,8 @@
    :biff.beholder/on-save #'on-save
    :biff.middleware/on-error #'ui/on-error
 
-   :de.com2u.timemachine/chat-clients (atom #{})})
+   :de.com2u.timemachine/chat-clients (atom #{})
+   :de.com2u.timemachine/game-clients (atom #{})}) ; Added game-clients atom
 
 (defonce system (atom {}))
 
@@ -70,11 +76,12 @@
   (let [new-system (reduce (fn [system component]
                              (log/info "starting:" (str component))
                              (component system))
-                           initial-system
-                           components)]
-    (reset! system new-system)
-    (generate-assets! new-system)
-    (log/info "System started.")
+                            initial-system
+                            components)]
+     (reset! system new-system)
+     (generate-assets! new-system)
+     (game/start-simulation! (partial app/broadcast-game-state new-system)) ; Start game simulation
+     (log/info "System started.")
     (log/info "Go to" (:biff/base-url new-system))
     new-system))
 

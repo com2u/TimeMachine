@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimeMachine Game</title>
+    <link href="/css/main.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/gaugeJS/dist/gauge.min.js"></script>
+    <style>
+        body { font-family: sans-serif; background-color: #374151; color: #d1d5db; padding: 1rem; }
+        .control-box {
+            background-color: #4b5563; border: 1px solid #6b7280; border-radius: 0.25rem; 
+            padding: 0.75rem; margin-bottom: 0.75rem; 
+            box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px 0 rgba(0,0,0,0.06);
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .control-title {
+            font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; 
+            color: #f3f4f6; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .control-value-display {
+            font-family: 'Orbitron', sans-serif; background-color: #1f2937; color: #6ee7b7; 
+            padding: 0.375rem 0.5rem; border-radius: 0.125rem; border: 1px solid #374151; 
+            text-align: right; font-size: 1.25rem; margin-bottom: 0.5rem;
+        }
+        .products-display {
+            font-family: 'Orbitron', sans-serif; background-color: #000; color: #fb923c; 
+            padding: 0.5rem; border-radius: 0.25rem; text-align: center; letter-spacing: 0.1em; 
+            border: 2px inset #333; font-size: 1.5rem; margin-bottom: 0.5rem;
+        }
+        .control-led {
+            width: 1rem; height: 1rem; border-radius: 50%; border: 1px solid #9ca3af; 
+            cursor: pointer; display: inline-block; vertical-align: middle; 
+            transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .led-on { background-color: #22c55e; box-shadow: 0 0 8px #22c55e, inset 0 0 3px rgba(255,255,255,0.5); }
+        .led-off { background-color: #ef4444; box-shadow: 0 0 8px #ef4444, inset 0 0 3px rgba(255,255,255,0.3); }
+        .label-text { font-size: 0.75rem; color: #cbd5e1; }
+        .input-group { margin-top: 0.5rem; }
+        .input-group label { display: block; margin-bottom: 0.125rem; }
+        .input-group input[type="range"] { width: 100%; height: 0.5rem; margin-top: 0.25rem; }
+        .button-industrial {
+            background-color: #3b82f6; color: white; padding: 0.25rem 0.75rem; 
+            border-radius: 0.25rem; border: 1px solid #1e40af; 
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2), inset 0px -2px 0px rgba(0,0,0,0.3);
+            font-size: 0.75rem; text-transform: uppercase;
+        }
+        .button-industrial:hover { background-color: #2563eb; }
+        .button-industrial:active { transform: translateY(1px); box-shadow: inset 0px 1px 1px rgba(0,0,0,0.3); }
+        canvas.gauge-canvas { width: 100%; height: 50px; /* Adjust height as needed */ margin-bottom: 0.25rem; }
+    </style>
+</head>
+<body class="bg-gray-700 p-4">
+    <h1 class="text-2xl font-bold text-center text-gray-200 mb-6">TimeMachine Control Panel</h1>
+    <div id="controls-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        
+        <div id="control-generator-1" class="control-box">
+            <div class="flex justify-between items-center mb-1">
+                <h2 class="control-title">Generator 1</h2>
+                <div class="flex items-center">
+                    <span class="label-text mr-2">Status:</span>
+                    <div id="generator-1-led" data-control-id="generator-1" class="control-led led-off control-toggler" title="Click to toggle"></div>
+                </div>
+            </div>
+            <div id="generator-1-value" class="control-value-display">N/A</div>
+            <div class="input-group">
+                <label class="label-text">Heat (<span id="generator-1-heat-val">20</span>°C)</label>
+                <canvas id="generator-1-heat-gauge" class="gauge-canvas" width="120" height="60"></canvas>
+            </div>
+            <div class="input-group">
+                <label class="label-text">Speed (<span id="generator-1-interval-val">1000</span>ms)</label>
+                <canvas id="generator-1-speed-gauge" class="gauge-canvas" width="120" height="60"></canvas>
+                <input type="range" id="generator-1-interval" data-control-id="generator-1" min="0" max="10000" step="100" value="1000" class="control-interval-slider" disabled>
+            </div>
+        </div>
+
+        <div id="control-generator-2" class="control-box">
+            <div class="flex justify-between items-center mb-1">
+                <h2 class="control-title">Generator 2</h2>
+                <div class="flex items-center">
+                    <span class="label-text mr-2">Status:</span>
+                    <div id="generator-2-led" data-control-id="generator-2" class="control-led led-off control-toggler" title="Click to toggle"></div>
+                </div>
+            </div>
+            <div id="generator-2-value" class="control-value-display">N/A</div>
+            <div class="input-group">
+                <label class="label-text">Heat (<span id="generator-2-heat-val">20</span>°C)</label>
+                <canvas id="generator-2-heat-gauge" class="gauge-canvas" width="120" height="60"></canvas>
+            </div>
+            <div class="input-group">
+                <label class="label-text">Speed (<span id="generator-2-interval-val">2000</span>ms)</label>
+                <canvas id="generator-2-speed-gauge" class="gauge-canvas" width="120" height="60"></canvas>
+                <input type="range" id="generator-2-interval" data-control-id="generator-2" min="0" max="10000" step="100" value="2000" class="control-interval-slider" disabled>
+            </div>
+        </div>
+
+        <div id="control-products" class="control-box">
+            <div class="flex justify-between items-center mb-1">
+                <h2 class="control-title">Products</h2>
+                <button id="reset-products-button" class="button-industrial">Reset</button>
+            </div>
+            <div id="products-product" class="products-display">N/A</div>
+            <div class="mt-1 text-xs text-gray-400">
+                <p class="mb-0.5">Input 1: <span id="products-input-a" class="font-mono">N/A</span></p>
+                <p>Input 2: <span id="products-input-b" class="font-mono">N/A</span></p>
+                <p>Input 3: <span id="products-input-c" class="font-mono">N/A</span></p>
+            </div>
+        </div>
+
+        <div id="control-generator-3" class="control-box">
+            <div class="flex justify-between items-center mb-1">
+                <h2 class="control-title">Generator 3</h2>
+                <div class="flex items-center">
+                    <span class="label-text mr-2">Status:</span>
+                    <div id="generator-3-led" data-control-id="generator-3" class="control-led led-off control-toggler" title="Click to toggle"></div>
+                </div>
+            </div>
+            <div id="generator-3-value" class="control-value-display">N/A</div>
+            <div class="input-group">
+                <label class="label-text">Heat (<span id="generator-3-heat-val">20</span>°C)</label>
+                <canvas id="generator-3-heat-gauge" class="gauge-canvas" width="120" height="60"></canvas>
+            </div>
+            <div class="input-group">
+                <label class="label-text">Speed (<span id="generator-3-interval-val">1500</span>ms)</label>
+                <canvas id="generator-3-speed-gauge" class="gauge-canvas" width="120" height="60"></canvas>
+                <input type="range" id="generator-3-interval" data-control-id="generator-3" min="0" max="10000" step="100" value="1500" class="control-interval-slider" disabled>
+            </div>
+        </div>
+
+        <div id="control-consumer-1" class="control-box">
+            <div class="flex justify-between items-center mb-1">
+                <h2 class="control-title">Consumer 1</h2>
+                <div class="flex items-center">
+                    <span class="label-text mr-2">Status:</span>
+                    <div id="consumer-1-led" data-control-id="consumer-1" class="control-led led-off control-toggler" title="Click to toggle"></div>
+                </div>
+            </div>
+            <div class="input-group">
+                <label class="label-text">Amount (<span id="consumer-1-amount-val">1</span>)</label>
+                <input type="range" id="consumer-1-amount-slider" data-control-id="consumer-1" min="1" max="10" step="1" value="1" class="control-consumer-amount-slider" disabled>
+            </div>
+            <div class="input-group">
+                <label class="label-text">Interval (<span id="consumer-1-interval-val">1000</span>ms)</label>
+                <input type="range" id="consumer-1-interval-slider" data-control-id="consumer-1" min="0" max="1000" step="100" value="1000" class="control-interval-slider" disabled>
+            </div>
+        </div>
+
+        <div id="control-energy-monitor" class="control-box">
+            <h2 class="control-title">Energy Monitor</h2>
+            <canvas id="energy-monitor-gauge" class="gauge-canvas" width="120" height="60"></canvas>
+            <div id="energy-monitor-output-value" class="control-value-display" style="font-size:0.8rem; text-align:center;">N/A</div>
+             <div class="mt-1 text-xs text-gray-400">
+                <p class="mb-0.5">Input 1: <span id="energy-monitor-input-a" class="font-mono">N/A</span></p>
+                <p>Input 2: <span id="energy-monitor-input-b" class="font-mono">N/A</span></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="ws-status" class="mt-6 text-center text-sm text-gray-400">Connecting to WebSocket...</div>
+
+    <script>
+        const wsStatusDiv = document.getElementById('ws-status');
+        let socket; 
+        let initialStateReceived = false;
+
+        const generator1ValueDiv = document.getElementById('generator-1-value');
+        const generator2ValueDiv = document.getElementById('generator-2-value');
+        const generator3ValueDiv = document.getElementById('generator-3-value'); // Added for Gen 3
+        const productsProductDiv = document.getElementById('products-product');
+        const productsInputADiv = document.getElementById('products-input-a');
+        const productsInputBDiv = document.getElementById('products-input-b');
+        const productsInputCDiv = document.getElementById('products-input-c'); // Added for Product Input C
+        const energyMonitorOutputValueDiv = document.getElementById('energy-monitor-output-value');
+        const energyMonitorInputADiv = document.getElementById('energy-monitor-input-a');
+        const energyMonitorInputBDiv = document.getElementById('energy-monitor-input-b');
+
+        const generator1Led = document.getElementById('generator-1-led');
+        const generator1IntervalSlider = document.getElementById('generator-1-interval');
+        const generator1IntervalValSpan = document.getElementById('generator-1-interval-val');
+        let generator1SpeedGauge;
+        const generator1HeatValSpan = document.getElementById('generator-1-heat-val');
+        let generator1HeatGauge;
+        
+        const generator2Led = document.getElementById('generator-2-led');
+        const generator2IntervalSlider = document.getElementById('generator-2-interval');
+        const generator2IntervalValSpan = document.getElementById('generator-2-interval-val');
+        let generator2SpeedGauge;
+        const generator2HeatValSpan = document.getElementById('generator-2-heat-val');
+        let generator2HeatGauge;
+
+        const generator3Led = document.getElementById('generator-3-led'); // Added for Gen 3
+        const generator3IntervalSlider = document.getElementById('generator-3-interval'); // Added for Gen 3
+        const generator3IntervalValSpan = document.getElementById('generator-3-interval-val'); // Added for Gen 3
+        let generator3SpeedGauge; // Added for Gen 3
+        const generator3HeatValSpan = document.getElementById('generator-3-heat-val'); // Added for Gen 3
+        let generator3HeatGauge; // Added for Gen 3
+
+        const consumer1Led = document.getElementById('consumer-1-led');
+        const consumer1AmountValSpan = document.getElementById('consumer-1-amount-val');
+        const consumer1AmountSlider = document.getElementById('consumer-1-amount-slider');
+        const consumer1IntervalValSpan = document.getElementById('consumer-1-interval-val');
+        const consumer1IntervalSlider = document.getElementById('consumer-1-interval-slider');
+
+        const resetProductsButton = document.getElementById('reset-products-button');
+        let energyMonitorGauge;
+
+        const heatGaugeOptions = {
+            angle: 0.25, lineWidth: 0.2, radiusScale: 0.7,
+            pointer: { length: 0.5, strokeWidth: 0.035, color: '#ffffff' },
+            limitMax: true, limitMin: true, // Limits are fixed at 20 and 150
+            colorStart: '#60a5fa', // blue-400 for cool
+            colorStop: '#ef4444',  // red-500 for hot
+            strokeColor: '#4b5563', /* gray-600 for gauge background */
+            generateGradient: true,
+            highDpiSupport: true,
+            staticZones: [
+               {strokeStyle: "#60a5fa", min: 20, max: 70},    // Cool (Blue)
+               {strokeStyle: "#facc15", min: 70, max: 120},  // Warm (Yellow)
+               {strokeStyle: "#ef4444", min: 120, max: 150}  // Hot (Red)
+            ],
+            renderTicks: {
+                divisions: 5, // e.g., 20, 52.5, 85, 117.5, 150
+                divWidth: 0.8,
+                divLength: 0.5,
+                divColor: '#9ca3af',
+                subDivisions: 3,
+                subLength: 0.3,
+                subWidth: 0.4,
+                subColor: '#6b7280'
+            }
+        };
+
+        const speedGaugeOptions = {
+            angle: 0.25, lineWidth: 0.2, radiusScale: 0.7,
+            pointer: { length: 0.5, strokeWidth: 0.035, color: '#ffffff' }, // White pointer
+            limitMax: false, limitMin: false,
+            colorStart: '#22c55e', colorStop: '#ef4444', // Green to Red
+            strokeColor: '#4b5563', /* gray-600 for gauge background */ generateGradient: true,
+            highDpiSupport: true,
+            staticZones: [ // Inverted for speed: 0ms (fast, green) to 10000ms (slow, red)
+               {strokeStyle: "#22c55e", min: 0, max: 3300},     // Fast = Green
+               {strokeStyle: "#facc15", min: 3300, max: 6600},  // Medium = Yellow (Tailwind yellow-400)
+               {strokeStyle: "#ef4444", min: 6600, max: 10000}  // Slow = Red
+            ],
+            renderTicks: {
+                divisions: 5,
+                divWidth: 0.8,
+                divLength: 0.5,
+                divColor: '#9ca3af', // gray-400
+                subDivisions: 3,
+                subLength: 0.3,
+                subWidth: 0.4,
+                subColor: '#6b7280' // gray-500
+            }
+        };
+        
+        const energyGaugeOptions = { 
+            angle: 0.25, lineWidth: 0.2, radiusScale: 0.7,
+            pointer: { length: 0.5, strokeWidth: 0.035, color: '#ffffff' },
+            limitMax: false, limitMin: false,
+            colorStart: '#22c55e', colorStop: '#ef4444', 
+            strokeColor: '#4b5563', generateGradient: true,
+            highDpiSupport: true,
+            staticZones: [ // Standard: Low (green) to High (red)
+               {strokeStyle: "#22c55e", min: 0, max: 33},    
+               {strokeStyle: "#facc15", min: 33, max: 66},  
+               {strokeStyle: "#ef4444", min: 66, max: 100} // Assuming energy monitor output is 0-100   
+            ],
+             renderTicks: { divisions: 5, divWidth: 0.8, divLength: 0.5, divColor: '#9ca3af', subDivisions: 3, subLength: 0.3, subWidth: 0.4, subColor: '#6b7280'}
+        };
+
+        function initGauges() {
+            const g1GaugeEl = document.getElementById('generator-1-speed-gauge');
+            if (g1GaugeEl) {
+                generator1SpeedGauge = new Gauge(g1GaugeEl).setOptions(speedGaugeOptions);
+                generator1SpeedGauge.maxValue = 10000; 
+                generator1SpeedGauge.setMinValue(0);
+                generator1SpeedGauge.set(1000); 
+            }
+            const g1HeatGaugeEl = document.getElementById('generator-1-heat-gauge');
+            if (g1HeatGaugeEl) {
+                generator1HeatGauge = new Gauge(g1HeatGaugeEl).setOptions(heatGaugeOptions);
+                generator1HeatGauge.maxValue = 150;
+                generator1HeatGauge.setMinValue(20);
+                generator1HeatGauge.set(20);
+            }
+
+            const g2GaugeEl = document.getElementById('generator-2-speed-gauge');
+            if (g2GaugeEl) {
+                generator2SpeedGauge = new Gauge(g2GaugeEl).setOptions(speedGaugeOptions);
+                generator2SpeedGauge.maxValue = 10000;
+                generator2SpeedGauge.setMinValue(0);
+                generator2SpeedGauge.set(2000);
+            }
+            const g2HeatGaugeEl = document.getElementById('generator-2-heat-gauge');
+            if (g2HeatGaugeEl) {
+                generator2HeatGauge = new Gauge(g2HeatGaugeEl).setOptions(heatGaugeOptions);
+                generator2HeatGauge.maxValue = 150;
+                generator2HeatGauge.setMinValue(20);
+                generator2HeatGauge.set(20);
+            }
+
+            const g3GaugeEl = document.getElementById('generator-3-speed-gauge'); // Added for Gen 3
+            if (g3GaugeEl) {
+                generator3SpeedGauge = new Gauge(g3GaugeEl).setOptions(speedGaugeOptions);
+                generator3SpeedGauge.maxValue = 10000;
+                generator3SpeedGauge.setMinValue(0);
+                generator3SpeedGauge.set(1500); // Default for Gen 3
+            }
+            const g3HeatGaugeEl = document.getElementById('generator-3-heat-gauge'); // Added for Gen 3
+            if (g3HeatGaugeEl) {
+                generator3HeatGauge = new Gauge(g3HeatGaugeEl).setOptions(heatGaugeOptions);
+                generator3HeatGauge.maxValue = 150;
+                generator3HeatGauge.setMinValue(20);
+                generator3HeatGauge.set(20);
+            }
+
+            const emGaugeEl = document.getElementById('energy-monitor-gauge');
+            if (emGaugeEl) {
+                energyMonitorGauge = new Gauge(emGaugeEl).setOptions(energyGaugeOptions);
+                energyMonitorGauge.maxValue = 100; 
+                energyMonitorGauge.setMinValue(0);
+                energyMonitorGauge.set(0);
+            }
+        }
+
+        function updateLedStatus(ledElement, isEnabled) {
+            if (ledElement) {
+                ledElement.classList.toggle('led-on', isEnabled);
+                ledElement.classList.toggle('led-off', !isEnabled);
+                ledElement.title = isEnabled ? 'Status: ON (Click to toggle OFF)' : 'Status: OFF (Click to toggle ON)';
+            }
+        }
+
+        function updateControlDisplay(controlId, data) {
+            if (!data) return;
+
+            switch(controlId) {
+                case 'generator-1':
+                    if (generator1ValueDiv) generator1ValueDiv.textContent = data.value !== undefined ? data.value : 'N/A';
+                    updateLedStatus(generator1Led, !!data['enabled?']); // User enabled toggle
+                    if (generator1IntervalSlider) generator1IntervalSlider.value = data.interval !== undefined ? data.interval : 1000;
+                    if (generator1IntervalValSpan) generator1IntervalValSpan.textContent = data.interval !== undefined ? data.interval : 1000;
+                    if (generator1SpeedGauge) generator1SpeedGauge.set(data.interval !== undefined ? data.interval : 1000);
+                    if (data.heat !== undefined) {
+                        if (generator1HeatGauge) generator1HeatGauge.set(data.heat);
+                        if (generator1HeatValSpan) generator1HeatValSpan.textContent = Number(data.heat).toFixed(1);
+                    }
+                    // If generator is off due to heat (is-on? is false), this will be visually represented by heat gauge at max.
+                    // The LED continues to show the user's `enabled?` state.
+                    break;
+                case 'generator-2':
+                    if (generator2ValueDiv) generator2ValueDiv.textContent = data.value !== undefined ? data.value : 'N/A';
+                    updateLedStatus(generator2Led, !!data['enabled?']); // User enabled toggle
+                    if (generator2IntervalSlider) generator2IntervalSlider.value = data.interval !== undefined ? data.interval : 2000;
+                    if (generator2IntervalValSpan) generator2IntervalValSpan.textContent = data.interval !== undefined ? data.interval : 2000;
+                    if (generator2SpeedGauge) generator2SpeedGauge.set(data.interval !== undefined ? data.interval : 2000);
+                     if (data.heat !== undefined) {
+                        if (generator2HeatGauge) generator2HeatGauge.set(data.heat);
+                        if (generator2HeatValSpan) generator2HeatValSpan.textContent = Number(data.heat).toFixed(1);
+                    }
+                    break;
+                case 'generator-3': // Added case for Gen 3
+                    if (generator3ValueDiv) generator3ValueDiv.textContent = data.value !== undefined ? data.value : 'N/A';
+                    updateLedStatus(generator3Led, !!data['enabled?']);
+                    if (generator3IntervalSlider) generator3IntervalSlider.value = data.interval !== undefined ? data.interval : 1500;
+                    if (generator3IntervalValSpan) generator3IntervalValSpan.textContent = data.interval !== undefined ? data.interval : 1500;
+                    if (generator3SpeedGauge) generator3SpeedGauge.set(data.interval !== undefined ? data.interval : 1500);
+                    if (data.heat !== undefined) {
+                        if (generator3HeatGauge) generator3HeatGauge.set(data.heat);
+                        if (generator3HeatValSpan) generator3HeatValSpan.textContent = Number(data.heat).toFixed(1);
+                    }
+                    break;
+                case 'consumer-1':
+                    if (data['enabled?'] !== undefined) updateLedStatus(consumer1Led, !!data['enabled?']);
+                    if (data.amount !== undefined) {
+                        if (consumer1AmountSlider) consumer1AmountSlider.value = data.amount;
+                        if (consumer1AmountValSpan) consumer1AmountValSpan.textContent = data.amount;
+                    }
+                    if (data.interval !== undefined) {
+                        if (consumer1IntervalSlider) consumer1IntervalSlider.value = data.interval;
+                        if (consumer1IntervalValSpan) consumer1IntervalValSpan.textContent = data.interval;
+                    }
+                    break;
+                case 'products':
+                    if (productsProductDiv) productsProductDiv.textContent = data.product !== undefined && data.product !== null ? Number(data.product).toFixed(2) : 'N/A';
+                    if (productsInputADiv) productsInputADiv.textContent = data["current-input-a"] !== undefined && data["current-input-a"] !== null ? data["current-input-a"] : 'N/A';
+                    if (productsInputBDiv) productsInputBDiv.textContent = data["current-input-b"] !== undefined && data["current-input-b"] !== null ? data["current-input-b"] : 'N/A';
+                    if (productsInputCDiv) productsInputCDiv.textContent = data["current-input-c"] !== undefined && data["current-input-c"] !== null ? data["current-input-c"] : 'N/A'; // Added for Product Input C
+                    break;
+                case 'energy-monitor':
+                    let displayVal = 'N/A';
+                    let gaugeVal = 0;
+                    if (data["output-value"] !== undefined && data["output-value"] !== null) {
+                        if (data["output-value"] === "Div/0!" || (typeof data["output-value"] === 'number' && !isFinite(data["output-value"]))) {
+                            displayVal = "Error";
+                            gaugeVal = 0; 
+                        } else {
+                            const numVal = Number(data["output-value"]);
+                            displayVal = numVal.toFixed(2);
+                            gaugeVal = numVal; 
+                        }
+                    }
+                    if (energyMonitorOutputValueDiv) energyMonitorOutputValueDiv.textContent = displayVal;
+                    if (energyMonitorGauge) energyMonitorGauge.set(gaugeVal); 
+                    
+                    if (energyMonitorInputADiv) energyMonitorInputADiv.textContent = data["current-input-a"] !== undefined && data["current-input-a"] !== null ? data["current-input-a"] : 'N/A';
+                    if (energyMonitorInputBDiv) energyMonitorInputBDiv.textContent = data["current-input-b"] !== undefined && data["current-input-b"] !== null ? data["current-input-b"] : 'N/A';
+                    break;
+            }
+        }
+        
+        function sendWsCommand(commandPayload) {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify(commandPayload));
+            } else {
+                console.warn("WebSocket not open. Command not sent:", commandPayload);
+            }
+        }
+
+        document.querySelectorAll('.control-toggler').forEach(el => {
+            el.addEventListener('click', function() {
+                console.log("LED clicked for controlId:", this.dataset.controlId); // Debug log
+                sendWsCommand({
+                    command: 'toggle-enabled',
+                    controlId: this.dataset.controlId
+                });
+            });
+        });
+
+        document.querySelectorAll('.control-interval-slider').forEach(slider => {
+            slider.addEventListener('input', function() { 
+                const displaySpanId = `${this.dataset.controlId}-interval-val`;
+                const displaySpan = document.getElementById(displaySpanId);
+                if (displaySpan) {
+                    displaySpan.textContent = this.value;
+                }
+                // Update gauge live as slider moves for generators
+                if (this.dataset.controlId === 'generator-1' && generator1SpeedGauge) {
+                    generator1SpeedGauge.set(parseInt(this.value));
+                } else if (this.dataset.controlId === 'generator-2' && generator2SpeedGauge) {
+                    generator2SpeedGauge.set(parseInt(this.value));
+                } else if (this.dataset.controlId === 'generator-3' && generator3SpeedGauge) { // Added for Gen 3
+                    generator3SpeedGauge.set(parseInt(this.value));
+                }
+                // For consumer interval, no gauge, just text update (already done by displaySpan)
+            });
+            slider.addEventListener('change', function() {
+                sendWsCommand({
+                    command: 'set-interval',
+                    controlId: this.dataset.controlId,
+                    value: parseInt(this.value)
+                });
+            });
+        });
+
+        document.querySelectorAll('.control-consumer-amount-slider').forEach(slider => {
+            slider.addEventListener('input', function() {
+                const displaySpanId = `${this.dataset.controlId}-amount-val`;
+                const displaySpan = document.getElementById(displaySpanId);
+                if (displaySpan) {
+                    displaySpan.textContent = this.value;
+                }
+            });
+            slider.addEventListener('change', function() {
+                sendWsCommand({
+                    command: 'set-consumer-amount',
+                    controlId: this.dataset.controlId,
+                    value: parseInt(this.value)
+                });
+            });
+        });
+
+        if(resetProductsButton) {
+            resetProductsButton.addEventListener('click', function() {
+                sendWsCommand({ command: 'reset-generators' });
+            });
+        }
+        
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.host;
+            const wsUrl = `${protocol}//${host}/ws/game`;
+            
+            wsStatusDiv.textContent = `Connecting to ${wsUrl}...`;
+            socket = new WebSocket(wsUrl);
+
+            socket.onopen = function(event) {
+                wsStatusDiv.textContent = 'WebSocket Connected';
+                console.log('WebSocket connection established');
+            };
+
+            socket.onmessage = function(event) {
+                try {
+                    const gameData = JSON.parse(event.data);
+                    if (gameData) {
+                        for (const controlId in gameData) {
+                            updateControlDisplay(controlId, gameData[controlId]);
+                        }
+                        if (!initialStateReceived) {
+                            initGauges();
+                            document.querySelectorAll('.control-interval-slider, .control-consumer-amount-slider').forEach(el => {
+                                if(el.tagName === 'INPUT') el.disabled = false;
+                            });
+                            initialStateReceived = true;
+                            console.log("Initial state received, controls interactive.");
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error parsing WebSocket message:', e);
+                    wsStatusDiv.textContent = 'Error processing message.';
+                }
+            };
+            socket.onclose = function(event) {
+                wsStatusDiv.textContent = 'WebSocket Disconnected. Attempting to reconnect in 3 seconds...';
+                console.log('WebSocket connection closed. Code:', event.code, 'Reason:', event.reason);
+                setTimeout(connectWebSocket, 3000);
+            };
+            socket.onerror = function(error) {
+                wsStatusDiv.textContent = 'WebSocket Error. Check console.';
+                console.error('WebSocket Error:', error);
+            };
+        }
+        connectWebSocket();
+    </script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle representing generator housing -->
+  <circle cx="100" cy="100" r="80" stroke="#333" stroke-width="8" fill="#e0e0e0"/>
+
+  <!-- Shaft in the center -->
+  <circle cx="100" cy="100" r="10" fill="#555"/>
+
+  <!-- Rotating part (rotor) -->
+  <g id="rotor">
+    <!-- Coils / magnetic poles -->
+    <rect x="95" y="30" width="10" height="20" fill="#c62828"/>
+    <rect x="95" y="150" width="10" height="20" fill="#1565c0"/>
+    <rect x="30" y="95" width="20" height="10" fill="#2e7d32"/>
+    <rect x="150" y="95" width="20" height="10" fill="#f9a825"/>
+
+    <!-- Rotating arrows -->
+    <path d="M100,30 A70,70 0 0,1 170,100" stroke="#666" stroke-width="4" fill="none" marker-end="url(#arrowhead)"/>
+    <path d="M100,170 A70,70 0 0,1 30,100" stroke="#666" stroke-width="4" fill="none" marker-end="url(#arrowhead)"/>
+
+    <!-- Rotation Animation -->
+    <animateTransform
+      attributeName="transform"
+      attributeType="XML"
+      type="rotate"
+      from="0 100 100"
+      to="360 100 100"
+      dur="3s"
+      repeatCount="indefinite"/>
+  </g>
+
+  <!-- Arrowhead marker -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#444"/>
+    </marker>
+  </defs>
+</svg>
