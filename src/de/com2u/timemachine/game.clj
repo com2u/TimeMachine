@@ -1,10 +1,16 @@
 (ns de.com2u.timemachine.game
+  (:require [de.com2u.timemachine.machine-config :as machine-config])
   (:gen-class))
 
 (defonce game-state
   (atom {;; :controls will be initialized in start-simulation!
          ;; :topics will store current values of outputs, e.g., {:counter-a-output 0}
          }))
+
+(defn get-machine-config []
+  "Returns the machine configuration for the frontend"
+  {:component-types (machine-config/get-component-types)
+   :machine-configuration (machine-config/get-machine-configuration)})
 
 (defn- process-generator [control current-time]
   (let [interval-ms (:interval control)
@@ -158,56 +164,7 @@
 (defn start-simulation! [broadcast-fn]
   (when (compare-and-set! simulation-active false true)
     (println "Starting TimeMachine simulation...")
-    (let [initial-controls
-          {:generator-1 {:id :generator-1
-                         :type :generator
-                         :enabled? true
-                         :interval 1000
-                         :last-tick (System/currentTimeMillis)
-                         :value 0
-                         :heat 20.0
-                         :max-heat 150.0
-                         :is-on? true}
-           :generator-2 {:id :generator-2
-                         :type :generator
-                         :enabled? true
-                         :interval 2000
-                         :last-tick (System/currentTimeMillis)
-                         :value 0
-                         :heat 20.0
-                         :max-heat 150.0
-                         :is-on? true}
-           :generator-3 {:id :generator-3
-                         :type :generator
-                         :enabled? true
-                         :interval 1500 ; Default interval for generator-3
-                         :last-tick (System/currentTimeMillis)
-                         :value 0
-                         :heat 20.0
-                         :max-heat 150.0
-                         :is-on? true}
-           :products {:id :products
-                       :type :products
-                       :input-a-topic :generator-1-output
-                       :input-b-topic :generator-2-output
-                       :input-c-topic :generator-3-output ; Added input from generator-3
-                       :current-input-a nil
-                       :current-input-b nil
-                       :current-input-c nil ; Added current-input-c
-                       :product 0} ; Initialize product to 0
-           :consumer-1 {:id :consumer-1
-                        :type :consumer
-                        :enabled? true
-                        :interval 1000 ; ms
-                        :amount 1
-                        :last-tick (System/currentTimeMillis)}
-           :energy-monitor {:id :energy-monitor
-                             :type :energy-monitor
-                             :input-a-topic :generator-1-output
-                             :input-b-topic :generator-2-output
-                             :current-input-a nil
-                             :current-input-b nil
-                             :output-value nil}}]
+    (let [initial-controls (machine-config/get-initial-component-states)]
       (reset! game-state {:controls initial-controls :topics {}}))
 
     (reset! simulation-runner

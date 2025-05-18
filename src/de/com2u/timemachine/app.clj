@@ -3,11 +3,12 @@
             [de.com2u.timemachine.middleware :as mid]
             [de.com2u.timemachine.ui :as ui]
             [de.com2u.timemachine.settings :as settings]
-            [de.com2u.timemachine.game :as game] ; Added game namespace
+            [de.com2u.timemachine.game :as game]
+            [de.com2u.timemachine.machine-config :as machine-config]
             [rum.core :as rum]
             [ring.adapter.jetty9 :as jetty]
             [cheshire.core :as cheshire]
-            [xtdb.api :as xt])) ; Added XTDB api
+            [xtdb.api :as xt]))
 
 
 
@@ -89,8 +90,12 @@
    :ws {:on-connect (fn [ws]
                       (println "Game client connected:" ws)
                       (swap! game-clients conj ws)
-                      ;; Send initial state to the newly connected client
-                      (jetty/send! ws (cheshire/generate-string (game/get-controls-state))))
+                      ;; Send initial configuration and state to the newly connected client
+                      (let [machine-config (game/get-machine-config)
+                            initial-state (game/get-controls-state)
+                            initial-data {:config machine-config
+                                          :state initial-state}]
+                        (jetty/send! ws (cheshire/generate-string initial-data))))
         :on-text (fn [ws text-message]
                    (try
                      (let [message (cheshire/parse-string text-message true)
@@ -112,7 +117,7 @@
                          (println "Unknown command received:" command))
                        
                        ;; After processing, broadcast the new state immediately
-                       (broadcast-game-state ctx (game/get-controls-state)))
+                       (broadcast-game-state ctx {:state (game/get-controls-state)}))
                      (catch Exception e
                        (println "Error processing command from client:" (.getMessage e) "Raw message:" text-message)
                        (.printStackTrace e))))
